@@ -134,6 +134,12 @@ pub enum CompileError {
     RequiredEvidenceMissing { note_id: String },
     #[error("required evidence '{note_id}' was refused: {reason}")]
     RequiredEvidenceRefused { note_id: String, reason: String },
+    #[error("resource limit exceeded: {resource} ({actual} > {limit})")]
+    ResourceLimit {
+        resource: &'static str,
+        limit: usize,
+        actual: usize,
+    },
 }
 
 #[derive(Debug)]
@@ -160,6 +166,10 @@ pub fn compile_context(
     request: &CompileRequest,
     now: DateTime<Utc>,
 ) -> Result<ContextPack, CompileError> {
+    enforce_compile_limit("notes", 10_000, notes.len())?;
+    enforce_compile_limit("task bytes", 64 * 1024, request.task.len())?;
+    enforce_compile_limit("token budget", 1_000_000, request.token_budget)?;
+    enforce_compile_limit("link depth", 4, request.max_link_depth)?;
     let by_id: HashMap<_, _> = notes
         .iter()
         .map(|parsed| (parsed.note.id.as_str(), parsed))
@@ -303,6 +313,21 @@ pub fn compile_context(
     };
     pack.receipt.value = digest_json(&pack);
     Ok(pack)
+}
+
+fn enforce_compile_limit(
+    resource: &'static str,
+    limit: usize,
+    actual: usize,
+) -> Result<(), CompileError> {
+    if actual > limit {
+        return Err(CompileError::ResourceLimit {
+            resource,
+            limit,
+            actual,
+        });
+    }
+    Ok(())
 }
 
 fn evaluate<'a>(
@@ -767,5 +792,29 @@ mod tests {
                 .iter()
                 .all(|candidate| !candidate.reason.is_empty())
         );
+    }
+
+    #[test]
+    fn compiler_resource_limits_fail_before_pathological_work() {
+        let note = baseline("base", "body");
+        let mut oversized_task = request(RankingPolicy::Lexical);
+        oversized_task.task = "x".repeat(64 * 1024 + 1);
+        assert!(matches!(
+            compile_context(std::slice::from_ref(&note), &oversized_task, now()),
+            Err(CompileError::ResourceLimit {
+                resource: "task bytes",
+                ..
+            })
+        ));
+
+        let mut excessive_depth = request(RankingPolicy::BoundedLinks);
+        excessive_depth.max_link_depth = 5;
+        assert!(matches!(
+            compile_context(&[note], &excessive_depth, now()),
+            Err(CompileError::ResourceLimit {
+                resource: "link depth",
+                ..
+            })
+        ));
     }
 }

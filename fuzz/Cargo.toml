@@ -1,0 +1,22 @@
+[package]
+name = "memoryfs-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+memoryfs-core = { path = "../crates/memoryfs-core" }
+
+[[bin]]
+name = "parse_note"
+path = "fuzz_targets/parse_note.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+members = ["."]

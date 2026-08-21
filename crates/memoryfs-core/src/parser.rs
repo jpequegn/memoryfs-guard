@@ -27,6 +27,36 @@ pub enum ParseError {
     },
     #[error("{path}: front matter migration failed: {message}")]
     Migration { path: String, message: String },
+    #[error("{path}: {resource} limit exceeded ({actual} > {limit})")]
+    ResourceLimit {
+        path: String,
+        resource: &'static str,
+        limit: usize,
+        actual: usize,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ParserLimits {
+    pub max_file_bytes: usize,
+    pub max_front_matter_bytes: usize,
+    pub max_body_bytes: usize,
+    pub max_links: usize,
+    pub max_attachments: usize,
+    pub max_heading_depth: u8,
+}
+
+impl Default for ParserLimits {
+    fn default() -> Self {
+        Self {
+            max_file_bytes: 1024 * 1024,
+            max_front_matter_bytes: 64 * 1024,
+            max_body_bytes: 960 * 1024,
+            max_links: 512,
+            max_attachments: 128,
+            max_heading_depth: 6,
+        }
+    }
 }
 
 /// Parses one versioned Markdown memory note without changing its source text.
@@ -36,8 +66,29 @@ pub enum ParseError {
 /// Returns an error when front matter is missing, malformed, unsupported, or does
 /// not satisfy the note contract.
 pub fn parse_note(path: impl Into<String>, source: &str) -> Result<ParsedNote, ParseError> {
+    parse_note_with_limits(path, source, &ParserLimits::default())
+}
+
+/// Parses one memory note while enforcing caller-selected resource limits.
+///
+/// # Errors
+///
+/// Returns an error when a resource limit is exceeded or the note is invalid.
+pub fn parse_note_with_limits(
+    path: impl Into<String>,
+    source: &str,
+    limits: &ParserLimits,
+) -> Result<ParsedNote, ParseError> {
     let path = path.into();
+    enforce_limit(&path, "file bytes", limits.max_file_bytes, source.len())?;
     let (front_matter, body, body_offset) = split_front_matter(&path, source)?;
+    enforce_limit(
+        &path,
+        "front matter bytes",
+        limits.max_front_matter_bytes,
+        front_matter.len(),
+    )?;
+    enforce_limit(&path, "body bytes", limits.max_body_bytes, body.len())?;
     let yaml: Value =
         serde_yaml::from_str(front_matter).map_err(|source| ParseError::InvalidYaml {
             path: path.clone(),
@@ -66,6 +117,24 @@ pub fn parse_note(path: impl Into<String>, source: &str) -> Result<ParsedNote, P
         &mut links,
         &mut attachments,
     );
+    enforce_limit(&path, "links", limits.max_links, links.len())?;
+    enforce_limit(
+        &path,
+        "attachments",
+        limits.max_attachments,
+        attachments.len(),
+    )?;
+    if let Some(heading) = headings
+        .iter()
+        .find(|heading| heading.level > limits.max_heading_depth)
+    {
+        return Err(ParseError::ResourceLimit {
+            path,
+            resource: "heading depth",
+            limit: usize::from(limits.max_heading_depth),
+            actual: usize::from(heading.level),
+        });
+    }
     links.sort_by_key(|link| (link.location.line, link.location.column));
     attachments.sort_by_key(|attachment| (attachment.location.line, attachment.location.column));
 
@@ -93,6 +162,23 @@ pub fn parse_note(path: impl Into<String>, source: &str) -> Result<ParsedNote, P
         source_path: path,
         source: source.to_owned(),
     })
+}
+
+fn enforce_limit(
+    path: &str,
+    resource: &'static str,
+    limit: usize,
+    actual: usize,
+) -> Result<(), ParseError> {
+    if actual > limit {
+        return Err(ParseError::ResourceLimit {
+            path: path.to_owned(),
+            resource,
+            limit,
+            actual,
+        });
+    }
+    Ok(())
 }
 
 fn split_front_matter<'a>(
@@ -383,6 +469,67 @@ mod tests {
             let json = serde_json::to_string(&note).expect("serializes");
             let decoded: Note = serde_json::from_str(&json).expect("deserializes");
             prop_assert_eq!(decoded.extra[&key].clone(), Value::from(value));
+        }
+
+        #[test]
+        fn arbitrary_malformed_input_never_panics(source in ".{0,4096}") {
+            let limits = ParserLimits {
+                max_file_bytes: 4096,
+                ..ParserLimits::default()
+            };
+            let _ = parse_note_with_limits("fuzz.md", &source, &limits);
+        }
+    }
+
+    #[test]
+    fn hard_limits_reject_pathological_inputs_without_panicking() {
+        let source = fixture("01-current-policy.md");
+        let limits = ParserLimits {
+            max_file_bytes: source.len() - 1,
+            ..ParserLimits::default()
+        };
+        assert!(matches!(
+            parse_note_with_limits("large.md", &source, &limits),
+            Err(ParseError::ResourceLimit {
+                resource: "file bytes",
+                ..
+            })
+        ));
+
+        let links = source.replace(
+            "Deploy changes through a reviewed pull request.",
+            "[[one]] [[two]]",
+        );
+        let limits = ParserLimits {
+            max_links: 1,
+            ..ParserLimits::default()
+        };
+        assert!(matches!(
+            parse_note_with_limits("links.md", &links, &limits),
+            Err(ParseError::ResourceLimit {
+                resource: "links",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn seeded_malformed_corpus_returns_errors_without_crashing() {
+        let repeated = "---\nschema_version: 1\n---\n# heading\n".repeat(200);
+        let seeds = [
+            "",
+            "---",
+            "---\n[\n---\n",
+            "---\nschema_version: 999\n---\n",
+            "---\nid: null\n---\n",
+            "---\n{}\n---\n[[unterminated",
+            "---\n- list\n---\nbody",
+            "not front matter",
+            "\0\0\0",
+            repeated.as_str(),
+        ];
+        for (index, seed) in seeds.iter().enumerate() {
+            let _ = parse_note(format!("seed-{index}.md"), seed);
         }
     }
 }
