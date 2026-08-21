@@ -1,0 +1,21 @@
+[package]
+name = "memoryfs-git"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+git2.workspace = true
+memoryfs-core = { path = "../memoryfs-core" }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true
