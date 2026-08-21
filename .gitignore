@@ -1,6 +1,7 @@
 /target/
 /artifacts/
 /web/pkg/
+/.playwright-cli/
+/output/
 .DS_Store
 *.wasm
-

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data:; connect-src 'self'" />
+    <title>MemoryFS Guard</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <div><h1>MemoryFS Guard</h1><p id="runtime-status">Initializing WASM</p></div>
+      </div>
+      <div class="header-actions">
+        <span class="local-badge">Local only</span>
+        <label class="button secondary" for="vault-input">Open vault</label>
+        <input id="vault-input" type="file" accept=".md,text/markdown" multiple webkitdirectory />
+        <button id="load-demo" class="button secondary" type="button">Load demo</button>
+      </div>
+    </header>
+    <main class="app-shell">
+      <aside class="vault-panel" aria-label="Vault notes">
+        <div class="panel-heading"><h2>Vault</h2><span id="note-count" class="count">0</span></div>
+        <ol id="note-list" class="note-list"></ol>
+      </aside>
+      <section class="workspace">
+        <form id="compile-form" class="compiler-bar">
+          <label class="task-field"><span>Task</span><input id="task" value="Prepare a safe production deployment" autocomplete="off" /></label>
+          <label><span>Project</span><input id="project" value="memoryfs" autocomplete="off" /></label>
+          <label><span>Budget</span><input id="budget" type="number" min="50" max="10000" step="50" value="1500" /></label>
+          <label><span>Clearance</span><select id="clearance"><option value="public">Public</option><option value="internal" selected>Internal</option><option value="confidential">Confidential</option><option value="restricted">Restricted</option></select></label>
+          <fieldset class="ranking-control">
+            <legend>Ranking</legend>
+            <label><input type="radio" name="ranking" value="metadata" /> Metadata</label>
+            <label><input type="radio" name="ranking" value="lexical" checked /> Lexical</label>
+            <label><input type="radio" name="ranking" value="vector_fixture" /> Vector</label>
+            <label><input type="radio" name="ranking" value="bounded_links" /> Links</label>
+          </fieldset>
+          <button class="button primary" type="submit">Compile</button>
+        </form>
+        <div id="summary" class="summary-strip" aria-live="polite">
+          <div><strong id="finding-count">0</strong><span>Findings</span></div>
+          <div><strong id="included-count">0</strong><span>Included</span></div>
+          <div><strong id="excluded-count">0</strong><span>Excluded</span></div>
+          <div><strong id="token-count">0</strong><span>Tokens</span></div>
+          <div class="digest"><strong id="pack-digest">Not compiled</strong><span>Pack digest</span></div>
+        </div>
+        <nav class="tabs" aria-label="Explorer views">
+          <button type="button" class="tab active" data-tab="findings">Findings</button>
+          <button type="button" class="tab" data-tab="context">Context pack</button>
+          <button type="button" class="tab" data-tab="graph">Graph</button>
+        </nav>
+        <section id="findings-view" class="view active" aria-label="Lint findings">
+          <div class="table-wrap"><table><thead><tr><th>Severity</th><th>Rule</th><th>Note</th><th>Location</th><th>Reason</th></tr></thead><tbody id="findings-body"></tbody></table></div>
+        </section>
+        <section id="context-view" class="view" aria-label="Context pack">
+          <div class="table-wrap"><table><thead><tr><th>Decision</th><th>Note</th><th>Status</th><th>Score</th><th>Reason</th></tr></thead><tbody id="context-body"></tbody></table></div>
+        </section>
+        <section id="graph-view" class="view graph-view" aria-label="Memory graph">
+          <svg id="graph" role="img" aria-label="Links between memory notes" viewBox="0 0 1000 560"></svg>
+        </section>
+        <div id="empty-state" class="empty-state"><strong>No vault loaded</strong><span>Open a Markdown vault or load the demo.</span></div>
+        <div id="error-banner" class="error-banner" role="alert" hidden></div>
+      </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
