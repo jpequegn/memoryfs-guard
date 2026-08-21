@@ -1,4 +1,7 @@
 /target/
+/fuzz/target/
+/fuzz/artifacts/
+/fuzz/corpus/
 /artifacts/
 /web/pkg/
 /.playwright-cli/

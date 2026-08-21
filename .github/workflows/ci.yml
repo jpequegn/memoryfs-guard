@@ -19,4 +19,4 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: make check
-
+      - run: make fuzz-smoke

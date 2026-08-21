@@ -1,4 +1,4 @@
-.PHONY: format lint test wasm web serve build check
+.PHONY: format lint test fuzz-smoke wasm web serve build check
 
 format:
 	cargo fmt --all
@@ -9,6 +9,9 @@ lint:
 
 test:
 	cargo test --workspace
+
+fuzz-smoke:
+	cargo run --manifest-path fuzz/Cargo.toml --bin parse_note -- -runs=1000 -max_len=65536
 
 wasm:
 	cargo check -p memoryfs-wasm --target wasm32-unknown-unknown
