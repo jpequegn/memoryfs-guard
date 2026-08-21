@@ -72,6 +72,15 @@ pub struct Validity {
     pub valid_until: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Suppression {
+    pub code: String,
+    pub reason: String,
+    pub until: DateTime<Utc>,
+    #[serde(default)]
+    pub approved_by: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Note {
     #[serde(default = "current_schema_version")]
@@ -95,6 +104,8 @@ pub struct Note {
     pub retention_days: Option<u32>,
     #[serde(default)]
     pub confidence: Option<f64>,
+    #[serde(default)]
+    pub suppressions: Vec<Suppression>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
