@@ -1,10 +1,16 @@
 #![doc = "Pure memory parsing, validation, and context compilation."]
 
+pub mod compiler;
 pub mod lint;
 pub mod migration;
 pub mod model;
 pub mod parser;
 
+pub use compiler::{
+    AuthorityStatus, CallerScope, CandidateDecision, CandidateReceipt, CompileError,
+    CompileRequest, ConflictStatus, ContextExcerpt, ContextPack, DigestReceipt, RankingPolicy,
+    TemporalStatus, compile_context,
+};
 pub use lint::{LintContext, LintFinding, LintReceipt, RULE_CATALOG, RuleInfo, lint_vault};
 pub use migration::{CURRENT_SCHEMA_VERSION, migrate_front_matter};
 pub use model::{
