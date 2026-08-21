@@ -12,9 +12,18 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 clap.workspace = true
 memoryfs-core = { path = "../memoryfs-core" }
+memoryfs-git = { path = "../memoryfs-git" }
+serde.workspace = true
+serde_json.workspace = true
+walkdir.workspace = true
+
+[dev-dependencies]
+assert_cmd.workspace = true
+predicates.workspace = true
+tempfile.workspace = true
 
 [lints]
 workspace = true
-
