@@ -1,4 +1,4 @@
-.PHONY: format lint test wasm build check
+.PHONY: format lint test wasm web serve build check
 
 format:
 	cargo fmt --all
@@ -13,8 +13,13 @@ test:
 wasm:
 	cargo check -p memoryfs-wasm --target wasm32-unknown-unknown
 
+web:
+	wasm-pack build crates/memoryfs-wasm --target web --out-dir ../../web/pkg --release
+
+serve: web
+	python3 -m http.server 4173
+
 build:
 	cargo build --workspace --release
 
 check: lint test wasm build
-
