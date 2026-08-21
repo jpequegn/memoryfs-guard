@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jpequegn/memoryfs-guard/schemas/memory-note-v1.schema.json",
+  "title": "MemoryFS note front matter v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "type",
+    "scope",
+    "provenance",
+    "trust",
+    "sensitivity"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string" },
+    "type": {
+      "enum": [
+        "fact",
+        "instruction",
+        "decision",
+        "preference",
+        "observation",
+        "policy",
+        "procedure"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "required": ["projects", "agents", "environments"],
+      "properties": {
+        "projects": { "type": "array", "items": { "type": "string" } },
+        "agents": { "type": "array", "items": { "type": "string" } },
+        "environments": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source", "observed_at"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "author": { "type": "string" },
+        "observed_at": { "type": "string", "format": "date-time" },
+        "source_revision": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "trust": { "enum": ["trusted", "reviewed", "untrusted", "quarantined"] },
+    "sensitivity": { "enum": ["public", "internal", "confidential", "restricted"] },
+    "validity": {
+      "type": "object",
+      "properties": {
+        "valid_from": { "type": ["string", "null"], "format": "date-time" },
+        "valid_until": { "type": ["string", "null"], "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "supersedes": { "type": "array", "items": { "type": "string" } },
+    "conflicts_with": { "type": "array", "items": { "type": "string" } },
+    "retention_days": { "type": "integer", "minimum": 1 },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+  },
+  "additionalProperties": true
+}
