@@ -10,7 +10,7 @@ fn current_schema_version() -> u32 {
     CURRENT_SCHEMA_VERSION
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NoteType {
     Fact,
