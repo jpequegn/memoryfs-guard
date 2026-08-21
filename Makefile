@@ -1,4 +1,4 @@
-.PHONY: format lint test fuzz-smoke wasm web serve build check
+.PHONY: format lint test fuzz-smoke wasm web serve demo build check
 
 format:
 	cargo fmt --all
@@ -21,6 +21,9 @@ web:
 
 serve: web
 	python3 -m http.server 4173
+
+demo:
+	cargo run -p memoryfs-cli -- demo --vault fixtures/vault --output artifacts/demo
 
 build:
 	cargo build --workspace --release
